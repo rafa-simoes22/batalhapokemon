@@ -1,5 +1,7 @@
-import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:math';
 
 void main() => runApp(PokemonBattleApp());
 
@@ -26,12 +28,6 @@ class PokemonBattleScreen extends StatefulWidget {
 }
 
 class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
-  final List<Pokemon> initialPokemons = [
-    Pokemon(name: 'Bulbasaur', hp: 50, attack: 10),
-    Pokemon(name: 'Charmander', hp: 48, attack: 12),
-    Pokemon(name: 'Squirtle', hp: 52, attack: 9),
-  ];
-
   Pokemon? playerPokemon;
   Pokemon? opponentPokemon;
   bool isPlayerTurn = true;
@@ -41,12 +37,31 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
   void initState() {
     super.initState();
     // Initialize the opponent's Pokemon randomly
-    opponentPokemon = getRandomPokemon();
+    getRandomPokemon().then((pokemon) {
+      setState(() {
+        opponentPokemon = pokemon;
+      });
+    });
   }
 
-  Pokemon getRandomPokemon() {
+  Future<Pokemon> getRandomPokemon() async {
     final random = Random();
-    return initialPokemons[random.nextInt(initialPokemons.length)];
+    final int randomPokemonId = random.nextInt(807) + 1; // PokeAPI tem até o Pokémon #807
+
+    final response = await http.get(
+      Uri.parse('https://pokeapi.co/api/v2/pokemon/$randomPokemonId/'),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final name = data['name'];
+      final hp = data['stats'][5]['base_stat']; // HP está no índice 5 da lista de stats
+      final attack = data['stats'][4]['base_stat']; // Ataque está no índice 4 da lista de stats
+
+      return Pokemon(name: name, hp: hp, attack: attack);
+    } else {
+      throw Exception('Falha ao carregar dados do Pokémon');
+    }
   }
 
   void attack() {
@@ -103,7 +118,11 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
 
   void restartBattle() {
     playerPokemon = null;
-    opponentPokemon = getRandomPokemon();
+    getRandomPokemon().then((pokemon) {
+      setState(() {
+        opponentPokemon = pokemon;
+      });
+    });
     isPlayerTurn = true;
     isBattleOver = false;
     setState(() {});
@@ -143,8 +162,11 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
                   )
                 : ElevatedButton(
                     onPressed: () {
-                      playerPokemon = getRandomPokemon();
-                      setState(() {});
+                      getRandomPokemon().then((pokemon) {
+                        setState(() {
+                          playerPokemon = pokemon;
+                        });
+                      });
                     },
                     child: Text('Escolher Pokémon Inicial'),
                   ),
