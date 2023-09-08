@@ -105,10 +105,15 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
   }
 
   int calculateDamage(Pokemon attacker, Pokemon defender) {
-    // Implemente a lógica de cálculo de dano aqui.
-    // Por exemplo, você pode usar uma fórmula baseada nos atributos dos Pokémons.
-    return attacker.attack; // Simplificado para fins de exemplo.
+
+  
+  int damage = attacker.attack - defender.hp;
+  if (damage < 1) {
+    damage = 1;
   }
+  
+  return damage;
+}
 
   void attack() {
     if (!isBattleOver && playerPokemon != null && opponentPokemon != null) {
