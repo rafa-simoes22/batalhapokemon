@@ -1,139 +1,154 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(MaterialApp(
-    home: MyApp(),
-  ));
-}
+void main() => runApp(PokemonBattleApp());
 
-class PokemonCard {
-  final String name;
-  final String type;
-  int hp;
-  List<String> attacks;
-
-  PokemonCard({
-    required this.name,
-    required this.type,
-    required this.hp,
-    required this.attacks,
-  });
-}
-
-class PokemonBattle {
-  final List<PokemonCard> playerCards;
-  final List<PokemonCard> opponentCards;
-  Random _random = Random();
-
-  PokemonBattle({
-    required this.playerCards,
-    required this.opponentCards,
-  });
-
-  bool _isPlayerTurn = true;
-
-  PokemonCard _getNextOpponentCard() {
-    return opponentCards[_random.nextInt(opponentCards.length)];
-  }
-
-  void _attack(PokemonCard attacker, PokemonCard defender) {
-    // Implemente a lógica de ataque aqui
-    // Reduza os pontos de vida do defensor, verifique condições de vitória, etc.
-    int damage = _random.nextInt(10) + 5;
-    defender.hp -= damage;
-    print("${attacker.name} atacou ${defender.name} causando $damage de dano.");
-  }
-
-  void playTurn() {
-    final currentPlayer = _isPlayerTurn ? playerCards : opponentCards;
-    final currentOpponent = _isPlayerTurn ? opponentCards : playerCards;
-
-    final attackingPokemon = currentPlayer[0];
-    final defendingPokemon = _getNextOpponentCard();
-
-    _attack(attackingPokemon, defendingPokemon);
-
-    // Alternar o turno
-    _isPlayerTurn = !_isPlayerTurn;
-  }
-
-  bool isGameOver() {
-    // Implemente a lógica para verificar se o jogo acabou (por exemplo, um jogador perdeu todas as cartas)
-    return playerCards.every((card) => card.hp <= 0) ||
-        opponentCards.every((card) => card.hp <= 0);
-  }
-}
-
-class MyApp extends StatefulWidget {
+class PokemonBattleApp extends StatelessWidget {
   @override
-  _MyAppState createState() => _MyAppState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: PokemonBattleScreen(),
+    );
+  }
 }
 
-class _MyAppState extends State<MyApp> {
-  PokemonBattle? battle;
+class Pokemon {
+  final String name;
+  int hp;
+  final int attack;
+
+  Pokemon({required this.name, required this.hp, required this.attack});
+}
+
+class PokemonBattleScreen extends StatefulWidget {
+  @override
+  _PokemonBattleScreenState createState() => _PokemonBattleScreenState();
+}
+
+class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
+  final List<Pokemon> initialPokemons = [
+    Pokemon(name: 'Bulbasaur', hp: 50, attack: 10),
+    Pokemon(name: 'Charmander', hp: 48, attack: 12),
+    Pokemon(name: 'Squirtle', hp: 52, attack: 9),
+  ];
+
+  Pokemon? playerPokemon;
+  Pokemon? opponentPokemon;
+  bool isPlayerTurn = true;
+  bool isBattleOver = false;
 
   @override
   void initState() {
     super.initState();
-
-    // Exemplo de criação de cartas para jogador e oponente
-    final playerCards = [
-      PokemonCard(name: "Pikachu", type: "Electric", hp: 50, attacks: ["Thunderbolt"]),
-      PokemonCard(name: "Charizard", type: "Fire", hp: 80, attacks: ["Flamethrower"]),
-      PokemonCard(name: "Blastoise", type: "Water", hp: 70, attacks: ["Hydro Pump"]),
-    ];
-
-    final opponentCards = [
-      PokemonCard(name: "Eevee", type: "Normal", hp: 40, attacks: ["Tackle"]),
-      PokemonCard(name: "Jigglypuff", type: "Fairy", hp: 60, attacks: ["Sing"]),
-      PokemonCard(name: "Meowth", type: "Normal", hp: 45, attacks: ["Scratch"]),
-    ];
-
-    battle = PokemonBattle(playerCards: playerCards, opponentCards: opponentCards);
+    // Initialize the opponent's Pokemon randomly
+    opponentPokemon = getRandomPokemon();
   }
 
-  void _playTurn() {
-    setState(() {
-      battle?.playTurn();
-      if (battle?.isGameOver() == true) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text("Fim de Jogo"),
-            content: Text("O jogo acabou!"),
-          ),
-        );
+  Pokemon getRandomPokemon() {
+    final random = Random();
+    return initialPokemons[random.nextInt(initialPokemons.length)];
+  }
+
+  void attack() {
+    if (!isBattleOver) {
+      if (isPlayerTurn) {
+        // Player attacks
+        final damage = playerPokemon!.attack;
+        opponentPokemon!.hp -= damage;
+      } else {
+        // Opponent attacks
+        final damage = opponentPokemon!.attack;
+        playerPokemon!.hp -= damage;
       }
-    });
+
+      // Check if the battle is over
+      if (playerPokemon!.hp <= 0 || opponentPokemon!.hp <= 0) {
+        isBattleOver = true;
+        showResultDialog();
+      } else {
+        // Switch turns
+        isPlayerTurn = !isPlayerTurn;
+      }
+    }
+    setState(() {});
+  }
+
+  void showResultDialog() {
+    String resultText;
+    if (playerPokemon!.hp <= 0) {
+      resultText = 'Você perdeu!';
+    } else {
+      resultText = 'Você venceu!';
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Resultado da batalha'),
+          content: Text(resultText),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                restartBattle();
+              },
+              child: Text('Reiniciar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void restartBattle() {
+    playerPokemon = null;
+    opponentPokemon = getRandomPokemon();
+    isPlayerTurn = true;
+    isBattleOver = false;
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text("Batalha Pokémon"),
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("Batalha Pokémon"),
-              if (battle != null)
-                Column(
-                  children: [
-                    Text("HP do Jogador: ${battle!.playerCards[0].hp}"),
-                    Text("HP do Oponente: ${battle!.opponentCards[0].hp}"),
-                    ElevatedButton(
-                      onPressed: () => _playTurn(),
-                      child: Text("Próximo Turno"),
-                    ),
-                  ],
-                ),
-            ],
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Batalha Pokémon'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Text(
+              isPlayerTurn ? 'Sua vez' : 'Vez do oponente',
+              style: TextStyle(fontSize: 20),
+            ),
+            SizedBox(height: 20),
+            playerPokemon != null
+                ? Column(
+                    children: [
+                      Text('Seu Pokémon: ${playerPokemon!.name}'),
+                      Text('HP: ${playerPokemon!.hp}'),
+                      Text('Ataque: ${playerPokemon!.attack}'),
+                      SizedBox(height: 20),
+                      Text('Pokémon Oponente: ${opponentPokemon!.name}'),
+                      Text('HP: ${opponentPokemon!.hp}'),
+                      Text('Ataque: ${opponentPokemon!.attack}'),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: attack,
+                        child: Text('Atacar'),
+                      ),
+                    ],
+                  )
+                : ElevatedButton(
+                    onPressed: () {
+                      playerPokemon = getRandomPokemon();
+                      setState(() {});
+                    },
+                    child: Text('Escolher Pokémon Inicial'),
+                  ),
+          ],
         ),
       ),
     );
