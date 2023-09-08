@@ -43,6 +43,12 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
         availablePokemons = pokemons;
       });
     });
+
+    getRandomPokemon().then((pokemon) {
+      setState(() {
+        opponentPokemon = pokemon;
+      });
+    });
   }
 
   Future<List<Pokemon>> getRandomPokemons() async {
@@ -69,6 +75,26 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
     }
 
     return pokemons;
+  }
+
+  Future<Pokemon> getRandomPokemon() async {
+    final random = Random();
+    final int randomPokemonId = random.nextInt(807) + 1;
+
+    final response = await http.get(
+      Uri.parse('https://pokeapi.co/api/v2/pokemon/$randomPokemonId/'),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final name = data['name'];
+      final hp = data['stats'][5]['base_stat'];
+      final attack = data['stats'][4]['base_stat'];
+
+      return Pokemon(name: name, hp: hp, attack: attack);
+    } else {
+      throw Exception('Falha ao carregar dados do Pokémon oponente');
+    }
   }
 
   void choosePlayerPokemon(Pokemon selectedPokemon) {
