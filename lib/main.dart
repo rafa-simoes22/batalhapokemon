@@ -36,7 +36,14 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize the opponent's Pokemon randomly
+    // Initialize player's Pokémon
+    getRandomPokemon().then((pokemon) {
+      setState(() {
+        playerPokemon = pokemon;
+      });
+    });
+
+    // Initialize the opponent's Pokémon randomly
     getRandomPokemon().then((pokemon) {
       setState(() {
         opponentPokemon = pokemon;
@@ -160,16 +167,7 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
                       ),
                     ],
                   )
-                : ElevatedButton(
-                    onPressed: () {
-                      getRandomPokemon().then((pokemon) {
-                        setState(() {
-                          playerPokemon = pokemon;
-                        });
-                      });
-                    },
-                    child: Text('Escolher Pokémon Inicial'),
-                  ),
+                : SizedBox(), // Remova o botão e deixe um SizedBox quando playerPokemon é nulo
           ],
         ),
       ),
