@@ -164,17 +164,23 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
   }
 
   void restartBattle() {
-    playerPokemon = null;
-    availablePokemons.clear();
-    getRandomPokemons().then((pokemon) {
-      setState(() {
-        opponentPokemon = pokemon as Pokemon?;
-      });
+  playerPokemon = null;
+  availablePokemons.clear(); // Limpa a lista de Pokémon disponíveis
+  getRandomPokemons().then((pokemons) {
+    setState(() {
+      availablePokemons = pokemons;
     });
-    isPlayerTurn = true;
-    isBattleOver = false;
-    setState(() {});
-  }
+  });
+  getRandomPokemon().then((pokemon) {
+    setState(() {
+      opponentPokemon = pokemon;
+    });
+  });
+  isPlayerTurn = true;
+  isBattleOver = false;
+  setState(() {});
+}
+
 
   @override
   Widget build(BuildContext context) {
