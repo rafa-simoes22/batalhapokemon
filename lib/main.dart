@@ -22,6 +22,13 @@ class Pokemon {
   Pokemon({required this.name, required this.hp, required this.attack});
 }
 
+class PokemonChoice {
+  final String name;
+  final int id;
+
+  PokemonChoice({required this.name, required this.id});
+}
+
 class PokemonBattleScreen extends StatefulWidget {
   @override
   _PokemonBattleScreenState createState() => _PokemonBattleScreenState();
@@ -29,6 +36,8 @@ class PokemonBattleScreen extends StatefulWidget {
 
 class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
   Pokemon? playerPokemon;
+  List<PokemonChoice>? playerPokemonChoices;
+  PokemonChoice? selectedPlayerPokemonChoice;
   Pokemon? opponentPokemon;
   bool isPlayerTurn = true;
   bool isBattleOver = false;
@@ -36,10 +45,10 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize player's Pokémon
-    getRandomPokemon().then((pokemon) {
+    // Initialize player's Pokémon choices for the first generation (1 to 151)
+    getRandomPokemonChoices(1).then((choices) {
       setState(() {
-        playerPokemon = pokemon;
+        playerPokemonChoices = choices;
       });
     });
 
@@ -49,6 +58,31 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
         opponentPokemon = pokemon;
       });
     });
+  }
+
+  Future<List<PokemonChoice>> getRandomPokemonChoices(int generation) async {
+    final List<PokemonChoice> choices = [];
+    final random = Random();
+
+    for (int i = 0; i < 3; i++) {
+      final int randomPokemonId = random.nextInt(151) + 1; // Limitado à primeira geração (1 a 151)
+      final response = await http.get(
+        Uri.parse('https://pokeapi.co/api/v2/pokemon/$randomPokemonId/'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final name = data['name'];
+        final id = data['id'];
+
+        final choice = PokemonChoice(name: name, id: id);
+        choices.add(choice);
+      } else {
+        throw Exception('Falha ao carregar dados do Pokémon');
+      }
+    }
+
+    return choices;
   }
 
   Future<Pokemon> getRandomPokemon() async {
@@ -124,10 +158,11 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
   }
 
   void restartBattle() {
-    isBattleOver = false;
-    getRandomPokemon().then((pokemon) {
+    playerPokemonChoices = null;
+    selectedPlayerPokemonChoice = null;
+    getRandomPokemonChoices(1).then((choices) {
       setState(() {
-        playerPokemon = pokemon;
+        playerPokemonChoices = choices;
       });
     });
 
@@ -138,7 +173,19 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
     });
 
     isPlayerTurn = true;
+    isBattleOver = false;
     setState(() {});
+  }
+
+  void selectPlayerPokemon(PokemonChoice choice) {
+    final int selectedPokemonId = choice.id;
+    getRandomPokemon().then((pokemon) {
+      setState(() {
+        playerPokemon = pokemon;
+        selectedPlayerPokemonChoice = choice;
+        playerPokemonChoices = null;
+      });
+    });
   }
 
   @override
@@ -173,7 +220,25 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
                       ),
                     ],
                   )
-                : SizedBox(),
+                : playerPokemonChoices != null
+                    ? Column(
+                        children: [
+                          Text('Escolha seu Pokémon Inicial:'),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              for (var choice in playerPokemonChoices!)
+                                ElevatedButton(
+                                  onPressed: () {
+                                    selectPlayerPokemon(choice);
+                                  },
+                                  child: Text(choice.name),
+                                ),
+                            ],
+                          ),
+                        ],
+                      )
+                    : SizedBox(),
           ],
         ),
       ),
