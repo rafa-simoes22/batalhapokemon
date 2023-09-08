@@ -28,12 +28,7 @@ class PokemonBattleScreen extends StatefulWidget {
 }
 
 class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
-  List<Pokemon> availablePokemons = [
-    Pokemon(name: 'Charizard', hp: 100, attack: 50),
-    Pokemon(name: 'Blastoise', hp: 120, attack: 45),
-    Pokemon(name: 'Venusaur', hp: 110, attack: 48),
-  ];
-
+  List<Pokemon> availablePokemons = [];
   Pokemon? playerPokemon;
   Pokemon? opponentPokemon;
   bool isPlayerTurn = true;
@@ -42,46 +37,60 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
   @override
   void initState() {
     super.initState();
-    getRandomPokemon().then((pokemon) {
+    // Obtenha os Pokémons disponíveis aleatoriamente da API
+    getRandomPokemons().then((pokemons) {
       setState(() {
-        opponentPokemon = pokemon;
+        availablePokemons = pokemons;
       });
     });
   }
 
-  Future<Pokemon> getRandomPokemon() async {
+  Future<List<Pokemon>> getRandomPokemons() async {
     final random = Random();
-    final int randomPokemonId = random.nextInt(807) + 1;
+    List<Pokemon> pokemons = [];
 
-    final response = await http.get(
-      Uri.parse('https://pokeapi.co/api/v2/pokemon/$randomPokemonId/'),
-    );
+    for (int i = 0; i < 3; i++) {
+      final int randomPokemonId = random.nextInt(807) + 1;
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final name = data['name'];
-      final hp = data['stats'][5]['base_stat'];
-      final attack = data['stats'][4]['base_stat'];
+      final response = await http.get(
+        Uri.parse('https://pokeapi.co/api/v2/pokemon/$randomPokemonId/'),
+      );
 
-      return Pokemon(name: name, hp: hp, attack: attack);
-    } else {
-      throw Exception('Falha ao carregar dados do Pokémon');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final name = data['name'];
+        final hp = data['stats'][5]['base_stat'];
+        final attack = data['stats'][4]['base_stat'];
+
+        pokemons.add(Pokemon(name: name, hp: hp, attack: attack));
+      } else {
+        throw Exception('Falha ao carregar dados do Pokémon');
+      }
     }
+
+    return pokemons;
   }
 
   void choosePlayerPokemon(Pokemon selectedPokemon) {
     setState(() {
       playerPokemon = selectedPokemon;
+      availablePokemons.remove(selectedPokemon);
     });
   }
 
+  int calculateDamage(Pokemon attacker, Pokemon defender) {
+    // Implemente a lógica de cálculo de dano aqui.
+    // Por exemplo, você pode usar uma fórmula baseada nos atributos dos Pokémons.
+    return attacker.attack; // Simplificado para fins de exemplo.
+  }
+
   void attack() {
-    if (!isBattleOver) {
+    if (!isBattleOver && playerPokemon != null && opponentPokemon != null) {
+      int damage = calculateDamage(playerPokemon!, opponentPokemon!);
+
       if (isPlayerTurn) {
-        final damage = playerPokemon!.attack;
         opponentPokemon!.hp -= damage;
       } else {
-        final damage = opponentPokemon!.attack;
         playerPokemon!.hp -= damage;
       }
 
@@ -91,8 +100,8 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
       } else {
         isPlayerTurn = !isPlayerTurn;
       }
+      setState(() {});
     }
-    setState(() {});
   }
 
   void showResultDialog() {
@@ -125,9 +134,10 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
 
   void restartBattle() {
     playerPokemon = null;
-    getRandomPokemon().then((pokemon) {
+    availablePokemons.clear();
+    getRandomPokemons().then((pokemon) {
       setState(() {
-        opponentPokemon = pokemon;
+        opponentPokemon = pokemon as Pokemon?;
       });
     });
     isPlayerTurn = true;
@@ -157,9 +167,9 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
                       Text('HP: ${playerPokemon!.hp}'),
                       Text('Ataque: ${playerPokemon!.attack}'),
                       SizedBox(height: 20),
-                      Text('Pokémon Oponente: ${opponentPokemon!.name}'),
-                      Text('HP: ${opponentPokemon!.hp}'),
-                      Text('Ataque: ${opponentPokemon!.attack}'),
+                      Text('Pokémon Oponente: ${opponentPokemon?.name ?? 'Nenhum Pokémon'}'),
+                      Text('HP: ${opponentPokemon?.hp ?? 0}'),
+                      Text('Ataque: ${opponentPokemon?.attack ?? 0}'),
                       SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: attack,
