@@ -124,14 +124,20 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
   }
 
   void restartBattle() {
-    playerPokemon = null;
+    isBattleOver = false;
+    getRandomPokemon().then((pokemon) {
+      setState(() {
+        playerPokemon = pokemon;
+      });
+    });
+
     getRandomPokemon().then((pokemon) {
       setState(() {
         opponentPokemon = pokemon;
       });
     });
+
     isPlayerTurn = true;
-    isBattleOver = false;
     setState(() {});
   }
 
@@ -167,7 +173,7 @@ class _PokemonBattleScreenState extends State<PokemonBattleScreen> {
                       ),
                     ],
                   )
-                : SizedBox(), // Remova o botão e deixe um SizedBox quando playerPokemon é nulo
+                : SizedBox(),
           ],
         ),
       ),
